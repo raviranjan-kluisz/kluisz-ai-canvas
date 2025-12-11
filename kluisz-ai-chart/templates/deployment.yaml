@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kluisz-ai-canvas.fullname" . }}
+  labels:
+    {{- include "kluisz-ai-canvas.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.kluisz.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "kluisz-ai-canvas.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "kluisz-ai-canvas.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "kluisz-ai-canvas.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z {{ include "kluisz-ai-canvas.postgresql.fullname" . }} {{ .Values.postgresql.service.port }}; do echo waiting for postgres; sleep 2; done;']
+      containers:
+        - name: kluisz
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.kluisz.image.repository }}:{{ .Values.kluisz.image.tag }}"
+          imagePullPolicy: {{ .Values.kluisz.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.kluisz.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: KLUISZ_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kluisz-ai-canvas.fullname" . }}-secret
+                  key: database-url
+            - name: KLUISZ_CONFIG_DIR
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "kluisz-ai-canvas.fullname" . }}-config
+                  key: config-dir
+          {{- if .Values.kluisz.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.kluisz.livenessProbe.httpGet.path }}
+              port: {{ .Values.kluisz.livenessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.kluisz.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.kluisz.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.kluisz.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.kluisz.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.kluisz.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.kluisz.readinessProbe.httpGet.path }}
+              port: {{ .Values.kluisz.readinessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.kluisz.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.kluisz.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.kluisz.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.kluisz.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.kluisz.resources | nindent 12 }}
+          {{- if .Values.kluisz.persistence.enabled }}
+          volumeMounts:
+            - name: kluisz-data
+              mountPath: {{ .Values.kluisz.persistence.mountPath }}
+          {{- end }}
+      {{- if .Values.kluisz.persistence.enabled }}
+      volumes:
+        - name: kluisz-data
+          persistentVolumeClaim:
+            claimName: {{ include "kluisz-ai-canvas.fullname" . }}-data
+      {{- end }}
+      {{- with .Values.kluisz.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kluisz.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.kluisz.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

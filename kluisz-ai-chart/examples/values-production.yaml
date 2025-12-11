@@ -1,0 +1,104 @@
+# Production deployment example
+# Use this as a starting point for production deployments
+
+kluisz:
+  replicaCount: 2
+
+  image:
+    repository: kluisz/kluisz-ai-canvas
+    tag: "1.0.0"  # Use specific version, not 'latest'
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 7860
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  persistence:
+    enabled: true
+    storageClass: "premium-rwo"  # Adjust for your cloud provider
+    size: 50Gi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 90
+    periodSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 45
+    periodSeconds: 5
+
+postgresql:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+
+  auth:
+    username: kluisz_prod
+    password: "CHANGE-THIS-TO-SECURE-PASSWORD"  # USE EXTERNAL SECRET IN PRODUCTION
+    database: kluisz_prod
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  persistence:
+    enabled: true
+    storageClass: "premium-rwo"
+    size: 100Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  hosts:
+    - host: kluisz.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kluisz-tls
+      hosts:
+        - kluisz.yourdomain.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000

@@ -1,0 +1,24 @@
+services:
+  # A Docker web service
+  - type: web
+    name: kluisz-kanvas
+    runtime: docker
+    dockerfilePath: ./docker/render.Dockerfile
+    repo: https://github.com/kluisz/kluisz-ai-canvas
+    branch: main
+    plan: standard
+    healthCheckPath: /health_check
+    autoDeploy: false
+    envVars:
+      - key: KLUISZ_DATABASE_URL
+        value: sqlite:////app/data/.cache/kluisz/kluisz.db
+      - key: KLUISZ_HOST
+        value: 0.0.0.0
+      - key: KLUISZ_PORT
+        # default render port https://docs.render.com/web-services#port-binding
+        value: 10000
+      - key: KLUISZ_LOG_LEVEL
+        value: INFO
+    disk:
+      name: kluisz-data
+      mountPath: /app/data

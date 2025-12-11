@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(helm lint:*)",
+      "Bash(tree:*)",
+      "Bash(helm template:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

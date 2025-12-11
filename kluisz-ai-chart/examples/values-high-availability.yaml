@@ -1,0 +1,132 @@
+# High Availability deployment example
+# Multiple replicas with autoscaling and pod anti-affinity
+
+kluisz:
+  replicaCount: 3
+
+  image:
+    repository: kluisz/kluisz-ai-canvas
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 7860
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  persistence:
+    enabled: true
+    storageClass: "premium-rwo"
+    size: 50Gi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 90
+    periodSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 45
+    periodSeconds: 5
+
+  # Pod anti-affinity to spread replicas across nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values:
+              - kluisz
+          topologyKey: kubernetes.io/hostname
+
+postgresql:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+
+  auth:
+    username: kluisz_prod
+    password: "CHANGE-THIS-TO-SECURE-PASSWORD"
+    database: kluisz_prod
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  persistence:
+    enabled: true
+    storageClass: "premium-rwo"
+    size: 200Gi
+
+  # NOTE: For true HA PostgreSQL, consider using:
+  # - PostgreSQL Operator (like Zalando, CloudNativePG)
+  # - Managed database service (RDS, Cloud SQL, etc.)
+  # Single StatefulSet PostgreSQL is not truly HA
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: kluisz.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kluisz-tls
+      hosts:
+        - kluisz.yourdomain.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 70
+
+serviceAccount:
+  create: true
+  annotations: {}
+
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Tolerations for node taints (if using dedicated node pools)
+tolerations: []
+
+# Node selector for specific node pools
+nodeSelector: {}
+  # node.kubernetes.io/instance-type: n2-standard-8
+  # workload: kluisz

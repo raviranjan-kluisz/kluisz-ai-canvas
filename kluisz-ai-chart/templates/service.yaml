@@ -1,0 +1,38 @@
+---
+# Kluisz Application Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kluisz-ai-canvas.fullname" . }}
+  labels:
+    {{- include "kluisz-ai-canvas.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.kluisz.service.type }}
+  ports:
+    - port: {{ .Values.kluisz.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "kluisz-ai-canvas.selectorLabels" . | nindent 4 }}
+---
+# PostgreSQL Service
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kluisz-ai-canvas.postgresql.fullname" . }}
+  labels:
+    {{- include "kluisz-ai-canvas.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  type: {{ .Values.postgresql.service.type }}
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+    - port: {{ .Values.postgresql.service.port }}
+      targetPort: postgresql
+      protocol: TCP
+      name: postgresql
+  selector:
+    {{- include "kluisz-ai-canvas.postgresql.selectorLabels" . | nindent 4 }}
+{{- end }}

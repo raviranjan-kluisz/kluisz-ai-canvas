@@ -1,0 +1,42 @@
+networks:
+  dev-kluisz:
+
+services:
+  kluisz:
+    build:
+      context: ..
+      dockerfile: docker/dev.Dockerfile
+    image: dev-kluisz
+    container_name: dev-kluisz
+    restart: always
+    ports:
+      - "7860:7860"
+      - "3000:3000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - KLUISZ_DATABASE_URL=postgresql://kluisz:kluisz@postgres:5432/kluisz
+      - KLUISZ_SUPERUSER=kluisz
+      - KLUISZ_SUPERUSER_PASSWORD=kluisz
+      - KLUISZ_CONFIG_DIR=/var/lib/kluisz
+    env_file:
+      - ../.env
+    volumes:
+      - ../:/app
+    depends_on:
+      - postgres
+    networks:
+      -  dev-kluisz
+
+
+  postgres:
+    container_name: postgres
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: kluisz
+      POSTGRES_PASSWORD: kluisz
+      POSTGRES_DB: kluisz
+    ports:
+      - "5432:5432"
+    networks:
+      -  dev-kluisz
+

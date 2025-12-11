@@ -1,0 +1,79 @@
+# Development/Testing deployment example
+# Minimal resources for local or dev clusters
+
+kluisz:
+  replicaCount: 1
+
+  image:
+    repository: kluisz/kluisz-ai-canvas
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: NodePort  # Easy access in dev
+    port: 7860
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default
+    size: 5Gi
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 15
+    periodSeconds: 5
+
+postgresql:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+
+  auth:
+    username: kluisz
+    password: kluisz  # Simple password for dev
+    database: kluisz
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 10Gi
+
+ingress:
+  enabled: false  # Use port-forward or NodePort
+
+autoscaling:
+  enabled: false
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 1000

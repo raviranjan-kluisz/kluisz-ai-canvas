@@ -1,0 +1,156 @@
+# Default values for kluisz-ai-canvas
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Kluisz Application Configuration
+kluisz:
+  replicaCount: 1
+
+  image:
+    repository: raviranjantabsam/kluisz-ai-canvas
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 7860
+    targetPort: 7860
+
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  # Liveness and readiness probes
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 7860
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 7860
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  # Persistent storage for application data
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default StorageClass if not specified
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /app/kluisz
+
+  # Environment variables
+  env:
+    configDir: /app/kluisz
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+# PostgreSQL Configuration
+postgresql:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "16"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 5432
+
+  # Database credentials (can be overridden)
+  auth:
+    username: kluisz
+    password: kluisz
+    database: kluisz
+
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  # Persistent storage for database
+  persistence:
+    enabled: true
+    storageClass: ""  # Use default StorageClass if not specified
+    accessMode: ReadWriteOnce
+    size: 20Gi
+
+  # Node selector
+  nodeSelector: {}
+
+  # Tolerations
+  tolerations: []
+
+  # Affinity
+  affinity: {}
+
+# Ingress Configuration
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: kluisz-ai-canvas.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: kluisz-ai-canvas-tls
+  #    hosts:
+  #      - kluisz-ai-canvas.example.com
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 2000
+
+# Security Context
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  runAsUser: 1000
+
+# Autoscaling (optional)
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

@@ -1,0 +1,17 @@
+{{- if .Values.kluisz.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kluisz-ai-canvas.fullname" . }}-data
+  labels:
+    {{- include "kluisz-ai-canvas.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.kluisz.persistence.accessMode }}
+  {{- if .Values.kluisz.persistence.storageClass }}
+  storageClassName: {{ .Values.kluisz.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.kluisz.persistence.size }}
+{{- end }}

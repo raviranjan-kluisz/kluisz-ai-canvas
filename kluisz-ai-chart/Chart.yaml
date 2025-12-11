@@ -1,0 +1,15 @@
+apiVersion: v2
+name: kluisz-ai-canvas
+description: A Helm chart for deploying Kluisz AI Canvas on Kubernetes
+type: application
+version: 1.0.0
+appVersion: "latest"
+keywords:
+  - ai
+  - canvas
+  - kluisz
+maintainers:
+  - name: Kluisz Team
+home: https://github.com/kluisz/kluisz-ai-canvas
+sources:
+  - https://github.com/kluisz/kluisz-ai-canvas

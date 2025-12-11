@@ -1,0 +1,60 @@
+# Example: Using external PostgreSQL database
+# (e.g., AWS RDS, Google Cloud SQL, Azure Database)
+
+kluisz:
+  replicaCount: 2
+
+  image:
+    repository: kluisz/kluisz-ai-canvas
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 7860
+
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  persistence:
+    enabled: true
+    storageClass: "premium-rwo"
+    size: 50Gi
+
+# Disable internal PostgreSQL
+postgresql:
+  enabled: false
+
+# NOTE: You'll need to create a secret manually with the external database URL
+# kubectl create secret generic kluisz-ai-canvas-external-db \
+#   --from-literal=database-url="postgresql://user:password@external-db-host:5432/dbname"
+#
+# Then update the deployment to use this secret instead of the generated one
+# Or use an external secret operator
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: kluisz.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kluisz-tls
+      hosts:
+        - kluisz.yourdomain.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
